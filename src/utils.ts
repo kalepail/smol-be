@@ -28,3 +28,10 @@ export async function paletteToBase64(palette: number[], width: number) {
     
     return data
 }
+
+export function getStub(env: Env) {
+    let id = env.SMOL_BE_DO.idFromName('cg:v1');
+    let stub = env.SMOL_BE_DO.get(id);
+    
+    return stub;
+}

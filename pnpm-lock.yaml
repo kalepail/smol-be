@@ -17,6 +17,9 @@ importers:
       '@stellar/stellar-sdk':
         specifier: ^13.1.0
         version: 13.1.0
+      itty-router:
+        specifier: ^5.0.18
+        version: 5.0.18
       smol-sc-sdk:
         specifier: link:./smol-sc-sdk
         version: link:smol-sc-sdk
@@ -485,6 +488,9 @@ packages:
   is-retry-allowed@3.0.0:
     resolution: {integrity: sha512-9xH0xvoggby+u0uGF7cZXdrutWiBiaFG8ZT4YFPXL8NzkyAwX3AKGLeFQLvzDpM430+nDFBZ1LHkie/8ocL06A==}
     engines: {node: '>=12'}
+
+  itty-router@5.0.18:
+    resolution: {integrity: sha512-mK3ReOt4ARAGy0V0J7uHmArG2USN2x0zprZ+u+YgmeRjXTDbaowDy3kPcsmQY6tH+uHhDgpWit9Vqmv/4rTXwA==}
 
   magic-string@0.25.9:
     resolution: {integrity: sha512-RmF0AsMzgt25qzqqLc1+MbHmhdx0ojF2Fvs4XnOqz2ZOBXzzkEwc/dJQZCYHAn7v1jbVOjAZfK8msRn4BxO4VQ==}
@@ -1014,6 +1020,8 @@ snapshots:
     optional: true
 
   is-retry-allowed@3.0.0: {}
+
+  itty-router@5.0.18: {}
 
   magic-string@0.25.9:
     dependencies:
