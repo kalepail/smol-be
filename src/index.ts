@@ -14,7 +14,7 @@ router
 		await getStub(env).zephyrDrop();
 		return status(204)
 	})
-	.get('/zephyr', async (req: RequestLike, env: Env, ctx: ExecutionContext) => {
+	.post('/zephyr', async (req: RequestLike, env: Env, ctx: ExecutionContext) => {
 		// TODO ensure we're only accepting acceptable (authenticated?) webhooks
 		// Likely need this on the zephyr size as well as here
 		
