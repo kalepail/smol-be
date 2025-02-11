@@ -1,0 +1,19 @@
+{
+  "name": "smol-be",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "cf-typegen": "wrangler types"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "wrangler": "^3.107.2"
+  },
+  "dependencies": {
+    "@cloudflare/workers-types": "^4.20250129.0",
+    "@stellar/stellar-sdk": "^13.1.0"
+  }
+}
