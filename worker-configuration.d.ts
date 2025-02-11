@@ -2,4 +2,5 @@
 
 interface Env {
 	SMOL_BE_DO: DurableObjectNamespace<import("./src/index").SmolBeDo>;
+	SMOL_BE_R2: R2Bucket;
 }

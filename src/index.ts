@@ -1,13 +1,17 @@
-import { xdr, scValToNative, Address } from "@stellar/stellar-sdk/minimal";
 import { DurableObject } from "cloudflare:workers";
-import { bigIntToUint8Array, uint8ArrayToBigInt } from "./utils";
+import { xdr, scValToNative, Address } from "@stellar/stellar-sdk/minimal";
+import { bigIntToUint8Array, paletteToBase64, uint8ArrayToBigInt } from "./utils";
+import { Server } from "@stellar/stellar-sdk/minimal/rpc";
+
+const CONTRACT_ID = 'CDE37MDCRXLY5VJYRNYTSBBDBUIBIP5ZYO54T25P3UTFIOOGML4LZ7V4'
+const rpc = new Server('https://soroban-testnet.stellar.org')
 
 interface ZephyrBody {
 	topics: string[],
 	data: string
 }
 
-export class SmolBeDo extends DurableObject {
+export class SmolBeDo extends DurableObject<Env> {
 	sql: SqlStorage
 
 	constructor(ctx: DurableObjectState, env: Env) {
@@ -48,7 +52,7 @@ export class SmolBeDo extends DurableObject {
 			)
 		`);
 	}
-	
+
 	async zephyrDrop() {
 		this.sql.exec('DROP TABLE IF EXISTS colors;');
 		this.sql.exec('DROP TABLE IF EXISTS glyphs;');
@@ -72,48 +76,61 @@ export class SmolBeDo extends DurableObject {
 		let data_scval = body.data ? xdr.ScVal.fromXDR(body.data, 'base64') : xdr.ScVal.scvVoid();
 		let data = scValToNative(data_scval);
 
+		console.log(topic_1);
+
 		switch (topic_1) {
 			// Colors
 			case 'color_claim':
-				// env.events().publish(
-				// 	(Symbol::new(&env, "color_claim"), owner), 
-				// 	color
-				// );
 				this.sql.exec(`
 					INSERT OR IGNORE INTO colors (color, owner) VALUES 
 					(?1, ?2);
 				`, data, topic_2);
-			break;
+				break;
 			case 'color_owner_transfer':
-				// env.events().publish(
-				// 	(Symbol::new(&env, "color_owner_transfer"), to), 
-				// 	color
-				// );
 				this.sql.exec(`
 					UPDATE colors SET owner = ?1 WHERE color = ?2;
 				`, topic_2, data);
-			break;
+				break;
 
 			// Glyphs
 			case 'glyph_mint':
-				// env.events().publish(
-				// 	(Symbol::new(&env, "glyph_mint"), owner),
-				// 	(glyph_index, title, story),
-				// );
+				let [glyph_index, title, story] = data
+
+				try {
+					// NOTE `_getLedgerEntries` due to a weird "Unsupported address type" error
+					let { entries } = await rpc._getLedgerEntries(xdr.LedgerKey.contractData(new xdr.LedgerKeyContractData({
+						contract: Address.fromString(CONTRACT_ID).toScAddress(),
+						key: xdr.ScVal.scvVec([
+							xdr.ScVal.scvSymbol('Glyph'),
+							xdr.ScVal.scvU32(glyph_index)
+						]),
+						durability: xdr.ContractDataDurability.persistent(),
+					})));
+
+					for (let entry of entries || []) {
+						let data = xdr.LedgerEntryData.fromXDR(entry.xdr, 'base64');
+						let glyph = scValToNative(data.contractData().val())
+					
+						let palette = [...glyph.colors].map((legend_index: number) => glyph.legend[legend_index]);
+						let base64 = await paletteToBase64(palette, glyph.width);
+
+						await this.env.SMOL_BE_R2.put(glyph_index, base64);
+					}
+				} catch(err) {
+					// don't block sql save on R2 save
+					console.error(err);
+				}
+
 				this.sql.exec(`
 					INSERT OR IGNORE INTO glyphs (glyph, owner, title, story) VALUES 
 					(?1, ?2, ?3, ?4);
-				`, data[0], topic_2, data[1], data[2]);
-			break;
+				`, glyph_index, topic_2, title, story);
+				break;
 			case 'glyph_owner_transfer':
-				// env.events().publish(
-				// 	(Symbol::new(&env, "glyph_owner_transfer"), 
-				// 	to
-				// ), glyph_index);
 				this.sql.exec(`
 					UPDATE glyphs SET owner = ?1 WHERE glyph = ?2;
 				`, topic_2, data);
-			break;
+				break;
 
 			// Offers
 			case 'offer_sell_glyph':
@@ -185,7 +202,7 @@ export class SmolBeDo extends DurableObject {
 								INSERT OR IGNORE INTO offers (sell, buy) VALUES
 								(?1, ?2);
 							`, topic_2, glyph_or_sac); // glyph_or_sac = buy glyph
-						break;
+							break;
 
 						// sell glyph, buy asset post
 						case 'Asset':
@@ -198,12 +215,12 @@ export class SmolBeDo extends DurableObject {
 								INSERT OR IGNORE INTO offers (sell, buy) VALUES
 								(?1, ?2);
 							`, topic_2, buy);
-						break;
+							break;
 						default:
 							throw new Error('Invalid type');
 					}
 				}
-			break;
+				break;
 			case 'offer_sell_asset':
 				// sell asset, buy glyph match
 				if (data) {
@@ -224,13 +241,13 @@ export class SmolBeDo extends DurableObject {
 						...Address.fromString(sac).toBuffer(),
 						...bigIntToUint8Array(amount)
 					]);
-					
+
 					this.sql.exec(`
 						INSERT OR IGNORE INTO offers (sell, buy) VALUES
 						(?1, ?2);
 					`, sell, topic_3);
 				}
-			break;
+				break;
 			case 'offer_sell_glyph_remove':
 				// remove specific sale
 				if (topic_3) {
@@ -241,7 +258,7 @@ export class SmolBeDo extends DurableObject {
 							this.sql.exec(`
 								DELETE FROM offers WHERE sell = ?1 AND buy = ?2;
 							`, topic_2, glyph_or_sac); // glyph_or_sac = buy glyph
-						break;
+							break;
 						case 'Asset':
 							let buy = new Uint8Array([
 								...Address.fromString(glyph_or_sac).toBuffer(), // glyph_or_sac = buy sac
@@ -251,17 +268,17 @@ export class SmolBeDo extends DurableObject {
 							this.sql.exec(`
 								DELETE FROM offers WHERE sell = ?1 AND buy = ?2;
 							`, topic_2, buy);
-						break;
+							break;
 					}
-				} 
-				
+				}
+
 				// remove all glyph sales
 				else {
 					this.sql.exec(`
 						DELETE FROM offers WHERE sell = ?1;
 					`, topic_2);
 				}
-			break;
+				break;
 			case 'offer_sell_asset_remove':
 				let [owner, sac, amount] = topic_2; // topic_2 = sell asset
 
@@ -274,34 +291,37 @@ export class SmolBeDo extends DurableObject {
 				this.sql.exec(`
 					DELETE FROM offers WHERE sell = ?1 AND buy = ?2;
 				`, sell, topic_3);
-			break;
+				break;
 
 			default:
 				throw new Error('Invalid topic');
 		}
 	}
 
-	async zephyrGet() {
-		let results = {
-			glyphs: [],
-			colors: [],
-			offers: [],
-		} as {
-			glyphs: Record<string, SqlStorageValue>[],
-			colors: Record<string, SqlStorageValue>[],
-			offers: Record<string, SqlStorageValue>[],
-		}
-
+	async zephyrColors() {
+		let colors: Record<string, SqlStorageValue>[] = []
 		let colors_cursor = this.sql.exec("SELECT * FROM colors;");
-		let glyphs_cursor = this.sql.exec("SELECT * FROM glyphs;");
-		let offers_cursor = this.sql.exec("SELECT * FROM offers;");
 
 		for (let row of colors_cursor) {
-			results.colors.push(row);
+			colors.push(row);
 		}
+
+		return colors;
+	}
+	async zephyrGlyphs() {
+		let glyphs: Record<string, SqlStorageValue>[] = []
+		let glyphs_cursor = this.sql.exec("SELECT * FROM glyphs;");
+
 		for (let row of glyphs_cursor) {
-			results.glyphs.push(row);
+			glyphs.push(row);
 		}
+
+		return glyphs;
+	}
+	async zephyrOffers() {
+		let offers: Record<string, SqlStorageValue>[] = []
+		let offers_cursor = this.sql.exec("SELECT * FROM offers;");
+
 		for (let row of offers_cursor) {
 			let sell = row.sell instanceof ArrayBuffer ? (() => {
 				let asset = new Uint8Array(row.sell);
@@ -312,20 +332,20 @@ export class SmolBeDo extends DurableObject {
 				let balanceBigInt = uint8ArrayToBigInt(balance);
 
 				return [
-					Address.fromScAddress(xdr.ScAddress.fromXDR(owner as Buffer)).toString(), 
-					Address.contract(sac as Buffer).toString(), 
+					Address.fromScAddress(xdr.ScAddress.fromXDR(owner as Buffer)).toString(),
+					Address.contract(sac as Buffer).toString(),
 					balanceBigInt.toString()
 				]
 			})() : row.sell;
 			let buy = row.buy instanceof ArrayBuffer ? (() => {
 				let asset = new Uint8Array(row.buy);
 				let sac = asset.slice(asset.length - 32 - 16, asset.length - 16);
-				
+
 				let balance = asset.slice(asset.length - 16);
 				let balanceBigInt = uint8ArrayToBigInt(balance);
 
 				return [
-					Address.contract(sac as Buffer).toString(), 
+					Address.contract(sac as Buffer).toString(),
 					balanceBigInt.toString()
 				]
 			})() : row.buy;
@@ -333,10 +353,21 @@ export class SmolBeDo extends DurableObject {
 			row.sell = sell as SqlStorageValue;
 			row.buy = buy as SqlStorageValue;
 
-			results.offers.push(row);
+			offers.push(row);
 		}
 
-		return results;
+		return offers;
+	}
+	async zephyrGet() {
+		let colors = await this.zephyrColors();
+		let glyphs = await this.zephyrGlyphs();
+		let offers = await this.zephyrOffers();
+
+		return {
+			colors,
+			glyphs,
+			offers,
+		};
 	}
 }
 
@@ -347,14 +378,45 @@ export default {
 		let url = new URL(request.url)
 
 		if (url.pathname.includes('drop')) {
+			// TODO authenticate this endpoint
 			await stub.zephyrDrop();
-		} 
-		
+		}
+
 		else if (url.pathname.includes('zephyr')) {
+			// TODO ensure we're only accepting acceptable (authenticated?) webhooks
+			// Likely need this on the zephyr size as well as here
 			let body: ZephyrBody = await request.json()
 			await stub.zephyrPost(body);
-		} 
-		
+		}
+
+		else if (url.pathname.includes('/glyph/')) {
+			let segments = url.pathname.split('/');
+			let glyph_index = segments[segments.length - 1];
+
+			let glyph = await env.SMOL_BE_R2.get(glyph_index);
+
+			if (!glyph) {
+				return new Response(null, { status: 404 });
+			}
+
+			return new Response(glyph.body, { headers: { 'Content-Type': 'image/png' } });
+		}
+
+		else if (url.pathname.includes('colors')) {
+			let colors = await stub.zephyrColors();
+			return Response.json(colors);
+		}
+
+		else if (url.pathname.includes('glyphs')) {
+			let glyphs = await stub.zephyrGlyphs();
+			return Response.json(glyphs);
+		}
+
+		else if (url.pathname.includes('offers')) {
+			let offers = await stub.zephyrOffers();
+			return Response.json(offers);
+		}
+
 		else {
 			let results = await stub.zephyrGet();
 			return Response.json(results);

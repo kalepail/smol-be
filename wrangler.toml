@@ -56,8 +56,8 @@ mode = "smart"
 # Durable Objects can live for as long as needed. Use these when you need a long-running "server", such as in realtime apps.
 # Docs: https://developers.cloudflare.com/workers/wrangler/configuration/#durable-objects
 [[durable_objects.bindings]]
-name = "SMOL_BE_DO"
 class_name = "SmolBeDo"
+name = "SMOL_BE_DO"
 
 # Durable Object migrations.
 # Docs: https://developers.cloudflare.com/workers/wrangler/configuration/#migrations
@@ -96,9 +96,9 @@ new_sqlite_classes = ["SmolBeDo"]
 
 # Bind an R2 Bucket. Use R2 to store arbitrarily large blobs of data, such as files.
 # Docs: https://developers.cloudflare.com/workers/wrangler/configuration/#r2-buckets
-# [[r2_buckets]]
-# binding = "MY_BUCKET"
-# bucket_name = "my-bucket"
+[[r2_buckets]]
+bucket_name = "smol-be-r2"
+binding = "SMOL_BE_R2"
 
 # Bind another Worker service. Use this binding to call another Worker without network overhead.
 # Docs: https://developers.cloudflare.com/workers/wrangler/configuration/#service-bindings

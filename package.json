@@ -8,12 +8,15 @@
     "start": "wrangler dev",
     "cf-typegen": "wrangler types"
   },
-  "devDependencies": {
-    "typescript": "^5.7.3",
-    "wrangler": "^3.107.2"
-  },
   "dependencies": {
-    "@cloudflare/workers-types": "^4.20250129.0",
-    "@stellar/stellar-sdk": "^13.1.0"
+    "@cloudflare/workers-types": "^4.20250204.0",
+    "@lunapaint/png-codec": "^0.2.0",
+    "@stellar/stellar-sdk": "^13.1.0",
+    "smol-sc-sdk": "link:./smol-sc-sdk"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.1",
+    "typescript": "^5.7.3",
+    "wrangler": "^3.108.0"
   }
 }
