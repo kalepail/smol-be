@@ -21,18 +21,18 @@ importers:
         specifier: ^5.0.18
         version: 5.0.18
       smol-sc-sdk:
-        specifier: link:./smol-sc-sdk
-        version: link:smol-sc-sdk
+        specifier: link:./ext/smol-sc-sdk
+        version: link:ext/smol-sc-sdk
     devDependencies:
       '@types/node':
-        specifier: ^22.13.1
-        version: 22.13.1
+        specifier: ^22.13.4
+        version: 22.13.4
       typescript:
         specifier: ^5.7.3
         version: 5.7.3
       wrangler:
-        specifier: ^3.108.0
-        version: 3.108.0(@cloudflare/workers-types@4.20250204.0)
+        specifier: ^3.109.1
+        version: 3.109.1(@cloudflare/workers-types@4.20250204.0)
 
 packages:
 
@@ -353,8 +353,8 @@ packages:
   '@stellar/stellar-sdk@13.1.0':
     resolution: {integrity: sha512-ARQkUdyGefXdTgwSF0eONkzv/geAqUfyfheJ9Nthz6GAr5b41fNwWW9UtE8JpXC4IpvE3t5elIUN5hKJzASN9w==}
 
-  '@types/node@22.13.1':
-    resolution: {integrity: sha512-jK8uzQlrvXqEU91UxiK5J7pKHyzgnI1Qnl0QDHIgVGuolJhRb9EEl28Cj9b3rGR8B2lhFCtvIm5os8lFnO/1Ew==}
+  '@types/node@22.13.4':
+    resolution: {integrity: sha512-ywP2X0DYtX3y08eFVx5fNIw7/uIv8hYUKgXoK8oayJlLnKcRfEYCxWMVE1XagUdVtCJlZT1AU4LXEABW+L1Peg==}
 
   acorn-walk@8.3.2:
     resolution: {integrity: sha512-cjkyv4OtNCIeqhHrfS81QWXoCBPExR/J62oyEqepVw8WaQeSqpW2uhuLPh1m9eWhDuOo/jUXVTlifvesOWp/4A==}
@@ -508,8 +508,8 @@ packages:
     engines: {node: '>=10.0.0'}
     hasBin: true
 
-  miniflare@3.20250204.0:
-    resolution: {integrity: sha512-f7tezEkOvVRVHIVul2EbTyKvWJCXpTDRAOxTxtD4N92+YI8PC2P8AvO4Z30vlN61r5Pje33fTBG8G1fEwSZIqQ==}
+  miniflare@3.20250204.1:
+    resolution: {integrity: sha512-B4PQi/Ai4d0ZTWahQwsFe5WAfr1j8ISMYxJZTc56g2/btgbX+Go099LmojAZY/fMRLhIYsglcStW8SeW3f/afA==}
     engines: {node: '>=16.13'}
     hasBin: true
 
@@ -633,8 +633,8 @@ packages:
     engines: {node: '>=16'}
     hasBin: true
 
-  wrangler@3.108.0:
-    resolution: {integrity: sha512-w8J0VtDqn8F94qw+HnxFbri7MMdT/to5/w1QHAjR//tIHkilKAUFNaEF3GDEJREvUG3iHuawrH2p5ATTHnFc/Q==}
+  wrangler@3.109.1:
+    resolution: {integrity: sha512-1Jx+nZ6eCXPQ2rsGdrV6Qy/LGvhpqudeuTl4AYHl9P8Zugp44Uzxnj5w11qF4v/rv1dOZoA5TydSt9xMFfhpKg==}
     engines: {node: '>=16.17.0'}
     hasBin: true
     peerDependencies:
@@ -885,7 +885,7 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  '@types/node@22.13.1':
+  '@types/node@22.13.4':
     dependencies:
       undici-types: 6.20.0
 
@@ -1035,7 +1035,7 @@ snapshots:
 
   mime@3.0.0: {}
 
-  miniflare@3.20250204.0:
+  miniflare@3.20250204.1:
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       acorn: 8.14.0
@@ -1195,14 +1195,14 @@ snapshots:
       '@cloudflare/workerd-linux-arm64': 1.20250204.0
       '@cloudflare/workerd-windows-64': 1.20250204.0
 
-  wrangler@3.108.0(@cloudflare/workers-types@4.20250204.0):
+  wrangler@3.109.1(@cloudflare/workers-types@4.20250204.0):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.3.4
       '@esbuild-plugins/node-globals-polyfill': 0.2.3(esbuild@0.17.19)
       '@esbuild-plugins/node-modules-polyfill': 0.2.2(esbuild@0.17.19)
       blake3-wasm: 2.1.5
       esbuild: 0.17.19
-      miniflare: 3.20250204.0
+      miniflare: 3.20250204.1
       path-to-regexp: 6.3.0
       unenv: 2.0.0-rc.1
       workerd: 1.20250204.0

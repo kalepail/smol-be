@@ -1,10 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { xdr, scValToNative, Address } from "@stellar/stellar-sdk/minimal";
-import { Server } from "@stellar/stellar-sdk/minimal/rpc";
 import { bigIntToUint8Array, paletteToBase64, uint8ArrayToBigInt } from "./utils";
-
-const CONTRACT_ID = 'CDE37MDCRXLY5VJYRNYTSBBDBUIBIP5ZYO54T25P3UTFIOOGML4LZ7V4'
-const rpc = new Server('https://soroban-testnet.stellar.org')
+import { getGlyph } from "./helpers";
 
 export interface ZephyrBody {
 	topics: string[],
@@ -21,8 +18,7 @@ export class SmolBeDo extends DurableObject<Env> {
 	}
 
 	async zephyrCreate() {
-		// TODO 
-		// add primary indexes
+		// TODO
 		// add indexes
 
 		// Colors
@@ -36,7 +32,8 @@ export class SmolBeDo extends DurableObject<Env> {
 		// Glyphs
 		this.sql.exec(`
 			CREATE TABLE IF NOT EXISTS glyphs(
-				glyph	INTEGER PRIMARY KEY,
+				id		INTEGER PRIMARY KEY,
+				author 	BLOB,
 				owner  	BLOB,
 				title	STRING,
 				story 	STRING
@@ -76,8 +73,6 @@ export class SmolBeDo extends DurableObject<Env> {
 		let data_scval = body.data ? xdr.ScVal.fromXDR(body.data, 'base64') : xdr.ScVal.scvVoid();
 		let data = scValToNative(data_scval);
 
-		console.log(topic_1);
-
 		switch (topic_1) {
 			// Colors
 			case 'color_claim':
@@ -97,38 +92,30 @@ export class SmolBeDo extends DurableObject<Env> {
 				let [glyph_index, title, story] = data
 
 				try {
-					// NOTE `_getLedgerEntries` due to a weird "Unsupported address type" error
-					let { entries } = await rpc._getLedgerEntries(xdr.LedgerKey.contractData(new xdr.LedgerKeyContractData({
-						contract: Address.fromString(CONTRACT_ID).toScAddress(),
-						key: xdr.ScVal.scvVec([
-							xdr.ScVal.scvSymbol('Glyph'),
-							xdr.ScVal.scvU32(glyph_index)
-						]),
-						durability: xdr.ContractDataDurability.persistent(),
-					})));
+					let glyph = await getGlyph(glyph_index);
 
-					for (let entry of entries || []) {
-						let data = xdr.LedgerEntryData.fromXDR(entry.xdr, 'base64');
-						let glyph = scValToNative(data.contractData().val())
-					
-						let palette = [...glyph.colors].map((legend_index: number) => glyph.legend[legend_index]);
+					if (glyph) {
+						let palette = glyph.colors.map((legend_index) => glyph.legend[legend_index]);
 						let base64 = await paletteToBase64(palette, glyph.width);
+
+						// TODO flush glyphs cache ??
 
 						await this.env.SMOL_BE_R2.put(glyph_index, base64);
 					}
+
 				} catch(err) {
 					// don't block sql save on R2 save
 					console.error(err);
 				}
 
 				this.sql.exec(`
-					INSERT OR IGNORE INTO glyphs (glyph, owner, title, story) VALUES 
-					(?1, ?2, ?3, ?4);
-				`, glyph_index, topic_2, title, story);
+					INSERT OR IGNORE INTO glyphs (id, author, owner, title, story) VALUES 
+					(?1, ?2, ?3, ?4, ?5);
+				`, glyph_index, topic_2, topic_3, title, story);
 				break;
 			case 'glyph_owner_transfer':
 				this.sql.exec(`
-					UPDATE glyphs SET owner = ?1 WHERE glyph = ?2;
+					UPDATE glyphs SET owner = ?1 WHERE id = ?2;
 				`, topic_2, data);
 				break;
 
@@ -160,7 +147,7 @@ export class SmolBeDo extends DurableObject<Env> {
 
 						// change sell glyph ownership to buyer
 						this.sql.exec(`
-							UPDATE glyphs SET owner = ?1 WHERE glyph = ?2;
+							UPDATE glyphs SET owner = ?1 WHERE id = ?2;
 						`, data, topic_2);
 					}
 
@@ -181,12 +168,12 @@ export class SmolBeDo extends DurableObject<Env> {
 
 						// change sell glyph ownership to buyer
 						this.sql.exec(`
-							UPDATE glyphs SET owner = ?1 WHERE glyph = ?2;
+							UPDATE glyphs SET owner = ?1 WHERE id = ?2;
 						`, data, topic_2);
 
 						// change buy glyph ownership to seller
 						this.sql.exec(`
-							UPDATE glyphs SET owner = ?1 WHERE glyph = ?2;
+							UPDATE glyphs SET owner = ?1 WHERE id = ?2;
 						`, topic_4, topic_3);
 					}
 				}
@@ -229,7 +216,7 @@ export class SmolBeDo extends DurableObject<Env> {
 					`, topic_3);
 
 					this.sql.exec(`
-						UPDATE glyphs SET owner = ?1 WHERE glyph = ?2;
+						UPDATE glyphs SET owner = ?1 WHERE id = ?2;
 					`, data, topic_3);
 				}
 
@@ -358,6 +345,17 @@ export class SmolBeDo extends DurableObject<Env> {
 
 		return offers;
 	}
+
+	async zephyrGlyph(glyph_index: number) {
+		let glyph_db = this.sql.exec('SELECT * FROM glyphs WHERE id = ?1;', glyph_index).one();
+		let glyph_ledger = await getGlyph(glyph_index);
+
+		return {
+			...glyph_db,
+			...glyph_ledger,
+		};
+	}
+
 	async zephyrGet() {
 		let colors = await this.zephyrColors();
 		let glyphs = await this.zephyrGlyphs();

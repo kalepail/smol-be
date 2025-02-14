@@ -13,11 +13,11 @@
     "@lunapaint/png-codec": "^0.2.0",
     "@stellar/stellar-sdk": "^13.1.0",
     "itty-router": "^5.0.18",
-    "smol-sc-sdk": "link:./smol-sc-sdk"
+    "smol-sc-sdk": "link:./ext/smol-sc-sdk"
   },
   "devDependencies": {
-    "@types/node": "^22.13.1",
+    "@types/node": "^22.13.4",
     "typescript": "^5.7.3",
-    "wrangler": "^3.108.0"
+    "wrangler": "^3.109.1"
   }
 }
